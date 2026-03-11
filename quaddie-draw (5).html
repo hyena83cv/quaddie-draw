@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🏇 Quaddie Draw</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a7a3c;
+    --green-light: #22a04e;
+    --gold: #e8b84b;
+    --gold-light: #f5d272;
+    --dark: #0d1a12;
+    --mid: #152a1c;
+    --card: #1b3024;
+    --text: #e8f0eb;
+    --muted: #7a9e85;
+    --punter-colors: #e8b84b, #4b9fe8, #e8634b, #9b4be8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--dark);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background turf texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 60px,
+        rgba(255,255,255,0.012) 60px,
+        rgba(255,255,255,0.012) 61px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 60px,
+        rgba(255,255,255,0.012) 60px,
+        rgba(255,255,255,0.012) 61px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 16px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 32px 0 24px;
+    border-bottom: 1px solid rgba(232,184,75,0.2);
+    margin-bottom: 32px;
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 12vw, 80px);
+    letter-spacing: 3px;
+    line-height: 1;
+    color: var(--text);
+    text-shadow: 0 0 40px rgba(232,184,75,0.3);
+  }
+
+  h1 span { color: var(--gold); }
+
+  .header-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* Steps */
+  .step {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .step.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--green);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--dark);
+  }
+  .btn-primary:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+  .btn-success {
+    background: var(--green-light);
+    color: white;
+  }
+  .btn-success:hover { background: #28b558; transform: translateY(-1px); }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(232,184,75,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Track selection list */
+  .track-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+
+  .track-list::-webkit-scrollbar { width: 4px; }
+  .track-list::-webkit-scrollbar-track { background: transparent; }
+  .track-list::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .track-item:hover {
+    background: rgba(232,184,75,0.08);
+    border-color: rgba(232,184,75,0.3);
+  }
+
+  .track-item.selected {
+    background: rgba(232,184,75,0.12);
+    border-color: var(--gold);
+  }
+
+  .track-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--muted);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .track-item.selected .track-checkbox {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: var(--dark);
+  }
+
+  .track-info { flex: 1; }
+
+  .track-name {
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .track-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .track-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-metro {
+    background: rgba(232,184,75,0.15);
+    color: var(--gold);
+    border: 1px solid rgba(232,184,75,0.3);
+  }
+
+  .badge-provincial {
+    background: rgba(75,159,232,0.12);
+    color: #7bc4f5;
+    border: 1px solid rgba(75,159,232,0.2);
+  }
+
+  .badge-country {
+    background: rgba(122,158,133,0.15);
+    color: var(--muted);
+    border: 1px solid rgba(122,158,133,0.2);
+  }
+
+  .select-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Draw results */
+  .draw-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .draw-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .draw-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .draw-track-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+
+  .draw-races {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .race-cell {
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .race-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .race-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .punter-chip {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  .punter-MJ  { background: rgba(232,184,75,0.18);  color: #f0c85a; border: 1px solid rgba(232,184,75,0.3); }
+  .punter-HM  { background: rgba(75,159,232,0.18);  color: #7bc4f5; border: 1px solid rgba(75,159,232,0.3); }
+  .punter-CV  { background: rgba(232,99,75,0.18);   color: #f5836b; border: 1px solid rgba(232,99,75,0.3); }
+  .punter-Orgy { background: rgba(155,75,232,0.18); color: #c08af5; border: 1px solid rgba(155,75,232,0.3); }
+
+  /* Message preview */
+  .message-box {
+    background: #0a1a0e;
+    border: 1px solid rgba(232,184,75,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--text);
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .message-box::-webkit-scrollbar { width: 4px; }
+  .message-box::-webkit-scrollbar-track { background: transparent; }
+  .message-box::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+
+  .copy-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .copied-notice {
+    font-size: 13px;
+    color: var(--green-light);
+    display: none;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .copied-notice.show { display: flex; }
+
+  /* Error */
+  .error-box {
+    background: rgba(232,99,75,0.1);
+    border: 1px solid rgba(232,99,75,0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #f5836b;
+    margin-top: 12px;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 16px 0;
+  }
+
+  .punter-legend {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .reshuffle-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 8px; }
+
+  /* Selections */
+  .selections-track-block {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .selections-track-title {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .leg-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .leg-label {
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+    min-width: 84px;
+  }
+  .leg-input {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: "DM Mono", monospace;
+    font-size: 14px;
+    width: 100%;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .leg-input:focus { outline: none; border-color: var(--gold); background: rgba(232,184,75,0.06); }
+  .leg-input::placeholder { color: var(--muted); opacity: 0.5; }
+  .leg-input.has-value { border-color: rgba(34,160,78,0.5); background: rgba(34,160,78,0.05); }
+  .leg-status { font-size: 16px; width: 20px; text-align: center; }
+  .track-complete-badge {
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(34,160,78,0.15);
+    color: var(--green-light);
+    border: 1px solid rgba(34,160,78,0.3);
+    margin-left: auto;
+  }
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    height: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--green-light);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  /* Summary */
+  .summary-block {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .summary-track-header {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: var(--gold);
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .summary-table th {
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 6px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+  }
+  .summary-table td {
+    padding: 9px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    vertical-align: middle;
+  }
+  .summary-table tr:last-child td { border-bottom: none; }
+  .summary-horses {
+    font-family: "DM Mono", monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+  /* Results tracker cards */
+  .results-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+
+  .results-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  .results-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .results-track-name {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .results-legs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+  }
+
+  .result-leg-cell {
+    padding: 12px 8px;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    position: relative;
+    transition: background 0.3s ease;
+  }
+  .result-leg-cell:last-child { border-right: none; }
+
+  .result-leg-cell.status-win  { background: rgba(34,160,78,0.12); }
+  .result-leg-cell.status-loss { background: rgba(220,60,60,0.10); }
+  .result-leg-cell.status-pending { background: transparent; }
+
+  .result-status-icon {
+    font-size: 22px;
+    line-height: 1;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .result-leg-label {
+    font-family: "DM Mono", monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+
+  .result-race-num {
+    font-family: "Bebas Neue", sans-serif;
+    font-size: 18px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .result-horses {
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .result-winner {
+    font-family: "DM Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .result-winner.win  { color: #4de080; }
+  .result-winner.loss { color: #f07070; }
+  .result-winner.pending { color: var(--muted); }
+
+  .check-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 4px;
+    font-family: "DM Mono", monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* The Cuntiness Wall of Shame */
+  .shame-section {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 1px solid rgba(232,184,75,0.15);
+  }
+
+  .shame-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(232,184,75,0.5);
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .shame-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 2px;
+    text-align: center;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .shame-subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .shame-podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    min-height: 200px;
+  }
+
+  .shame-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    max-width: 140px;
+  }
+
+  .shame-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    margin-bottom: 8px;
+    border: 2px solid transparent;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+  }
+
+  .shame-punter-name {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .shame-count {
+    font-family: 'Bebas Neue', sans-serif;
+    line-height: 1;
+    margin-bottom: 8px;
+    transition: all 0.4s ease;
+  }
+
+  .shame-count.big   { font-size: 64px; }
+  .shame-count.med   { font-size: 52px; }
+  .shame-count.small { font-size: 40px; }
+
+  .shame-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .shame-block {
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    min-height: 20px;
+    transition: height 0.5s ease;
+  }
+
+  /* Rank colours */
+  .shame-rank-1 .shame-avatar { border-color: #e05050; background: rgba(220,60,60,0.2); }
+  .shame-rank-1 .shame-count  { color: #f07070; }
+  .shame-rank-1 .shame-block  { background: rgba(220,60,60,0.2); border: 1px solid rgba(220,60,60,0.3); }
+  .shame-rank-1 .shame-punter-name { color: #f07070; }
+
+  .shame-rank-2 .shame-avatar { border-color: rgba(220,120,60,0.8); background: rgba(220,120,60,0.15); }
+  .shame-rank-2 .shame-count  { color: #f0a070; }
+  .shame-rank-2 .shame-block  { background: rgba(220,120,60,0.15); border: 1px solid rgba(220,120,60,0.25); }
+  .shame-rank-2 .shame-punter-name { color: #f0a070; }
+
+  .shame-rank-3 .shame-avatar { border-color: rgba(180,180,60,0.6); background: rgba(180,180,60,0.1); }
+  .shame-rank-3 .shame-count  { color: #d0d070; }
+  .shame-rank-3 .shame-block  { background: rgba(180,180,60,0.1); border: 1px solid rgba(180,180,60,0.2); }
+  .shame-rank-3 .shame-punter-name { color: #d0d070; }
+
+  .shame-rank-4 .shame-avatar { border-color: rgba(122,158,133,0.5); background: rgba(122,158,133,0.1); }
+  .shame-rank-4 .shame-count  { color: var(--muted); }
+  .shame-rank-4 .shame-block  { background: rgba(122,158,133,0.08); border: 1px solid rgba(122,158,133,0.15); }
+  .shame-rank-4 .shame-punter-name { color: var(--muted); }
+
+  .shame-zero .shame-count { color: rgba(122,158,133,0.4); }
+
+  .shame-crown { font-size: 20px; margin-bottom: 2px; min-height: 24px; }
+
+  .shame-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Reset confirm inline */
+  .shame-reset-confirm {
+    display: none;
+    background: rgba(220,60,60,0.08);
+    border: 1px solid rgba(220,60,60,0.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    text-align: center;
+  }
+
+  @keyframes blamePop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+  }
+  .blame-pop { animation: blamePop 0.45s ease; }
+
+  @media (max-width: 480px) {
+    .draw-races { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 52px; }
+    .leg-label { min-width: 70px; font-size: 10px; }
+    .results-legs { grid-template-columns: repeat(2, 1fr); }
+    .result-leg-cell:nth-child(2) { border-right: none; }
+    .result-leg-cell:nth-child(1),
+    .result-leg-cell:nth-child(2) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .shame-count.big   { font-size: 52px; }
+    .shame-count.med   { font-size: 42px; }
+    .shame-count.small { font-size: 34px; }
+    .shame-avatar { width: 44px; height: 44px; font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-eyebrow">The Meadows Punters Club</div>
+    <h1>QUADDIE<br><span>DRAW</span></h1>
+    <div class="header-date" id="headerDate"></div>
+  </header>
+
+  <!-- Step 1: Load Tracks -->
+  <div class="step" id="step1">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Load Today's Race Meetings</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Fetches today's Australian thoroughbred race meetings via TAB. Sorted by prestige — metro first.</p>
+    <button class="btn btn-primary" onclick="loadMeetings()">🏇 Fetch Race Meetings</button>
+    <div id="loadStatus"></div>
+    <div id="trackList" style="margin-top:16px;"></div>
+  </div>
+
+  <!-- Step 2: Draw -->
+  <div class="step disabled" id="step2">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Run the Quaddie Draw</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Randomly assigns <strong style="color:var(--text)">MJ, HM, CV & Orgy</strong> to the 4 quaddie legs at each selected track.</p>
+
+    <div class="punter-legend">
+      <span class="punter-chip punter-MJ">MJ</span>
+      <span class="punter-chip punter-HM">HM</span>
+      <span class="punter-chip punter-CV">CV</span>
+      <span class="punter-chip punter-Orgy">Orgy</span>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-primary" id="drawBtn" onclick="runDraw()">🎲 Run the Draw</button>
+    <div id="drawResults" style="margin-top:20px;"></div>
+    <div class="reshuffle-row" id="reshuffleRow" style="display:none">
+      <button class="btn btn-secondary" onclick="runDraw()">🔄 Reshuffle</button>
+      <button class="btn btn-success" onclick="showStep3()">✅ Lock In &amp; Generate Message</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Signal Message -->
+  <div class="step disabled" id="step3">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Copy to Signal</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Tap copy, open your Signal group, and paste. Done.</p>
+    <div class="message-box" id="messageBox"></div>
+    <div class="copy-row">
+      <button class="btn btn-primary" onclick="copyMessage()">📋 Copy Message</button>
+      <div class="copied-notice" id="copiedNotice">✓ Copied to clipboard!</div>
+      <button class="btn btn-success" onclick="document.getElementById('step4').scrollIntoView({behavior:'smooth',block:'start'})" style="margin-left:auto">Enter Selections ↓</button>
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn btn-secondary" style="font-size:12px" onclick="resetAll()">↩ Start Over</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Enter Selections -->
+  <div class="step disabled" id="step4">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">Enter Horse Selections</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Each punter enters their horse numbers for their assigned leg. Type numbers separated by commas.</p>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="selectionsProgress" style="width:0%"></div></div>
+    <div id="selectionsForm"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;" id="step4Actions" style="display:none">
+      <button class="btn btn-success" onclick="showStep5()" id="step4NextBtn" disabled>📊 View Summary</button>
+    </div>
+  </div>
+
+  <!-- Step 5: Summary + Results -->
+  <div class="step disabled" id="step5">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div class="step-title">Selections &amp; Results</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Track picks and check live results. Hit the button to see how your horses ran.</p>
+
+    <!-- Results visual cards -->
+    <div id="resultsGrid" class="results-grid"></div>
+
+    <!-- Check results button -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn btn-primary" onclick="checkResults()" id="checkResultsBtn">🔍 Check Results</button>
+      <div class="check-status-bar" id="checkStatusBar"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Table summary -->
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace;">SELECTIONS SUMMARY</p>
+    <div id="summaryContent"></div>
+    <div class="copy-row" style="margin-top:16px;">
+      <button class="btn btn-primary" onclick="copySummary()">📋 Copy Selections to Signal</button>
+      <div class="copied-notice" id="copiedNotice2">✓ Copied!</div>
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-secondary" onclick="editSelections()">✏️ Edit Selections</button>
+    </div>
+  </div>
+
+  <!-- Step 6: Reset -->
+  <div class="step disabled" id="step6">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div class="step-title">Reset Day</div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Clear everything and start fresh. This will wipe today's draw, selections and results.</p>
+    <button class="btn btn-secondary" style="border-color:rgba(220,60,60,0.4);color:#f07070;" onclick="confirmReset()">🗑️ Reset Today's Session</button>
+
+    <!-- Confirm dialog -->
+    <div id="resetConfirm" style="display:none;margin-top:16px;background:rgba(220,60,60,0.08);border:1px solid rgba(220,60,60,0.25);border-radius:10px;padding:16px;">
+      <p style="font-size:14px;font-weight:700;margin-bottom:6px;color:#f07070;">Are you sure?</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">This will clear today's draw, all selections and results. This cannot be undone.</p>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" style="border-color:rgba(220,60,60,0.5);color:#f07070;flex:1;" onclick="doReset()">Yes, reset everything</button>
+        <button class="btn btn-secondary" style="flex:1;" onclick="cancelReset()">No, keep it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The Cuntiness Wall of Shame (permanent) -->
+  <div class="shame-section" id="shameSection">
+    <div class="shame-eyebrow">All Time</div>
+    <div class="shame-title">🏆 The Cuntiness Wall of Shame</div>
+    <div class="shame-subtitle">First leg to lose kills the quaddie. Blame assigned accordingly.</div>
+    <div class="shame-podium" id="shamePodium"></div>
+    <!-- Admin reset panel — only visible on #admin hash -->
+    <div id="shameAdminPanel" style="display:none;margin-top:16px;">
+      <div class="shame-reset-confirm" id="shameResetConfirm" style="display:block;">
+        <p style="font-size:14px;font-weight:700;color:#f07070;margin-bottom:6px;">⚙️ Admin: Reset The Cuntiness Wall of Shame</p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">This wipes all-time blame counts permanently. Cannot be undone.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <button class="btn btn-secondary" style="border-color:rgba(220,60,60,0.5);color:#f07070;" onclick="doShameReset()">Yes, wipe it</button>
+          <button class="btn btn-secondary" onclick="hideAdminPanel()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PUNTERS = ['MJ', 'HM', 'CV', 'Orgy'];
+const JURISDICTIONS = ['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT'];
+
+let selectedTracks = new Set();
+let allMeetings = [];
+let currentDraw = null;
+let isFallback = false;
+
+// Set date in header
+const now = new Date();
+document.getElementById('headerDate').textContent =
+  now.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+function getTodayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// CORS proxies to try
+const PROXIES = [
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => url
+];
+
+async function fetchWithProxy(url, headers = {}) {
+  for (const proxy of PROXIES) {
+    try {
+      const res = await fetch(proxy(url), { headers: { 'Accept': 'application/json', ...headers } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      return data;
+    } catch(e) { /* try next */ }
+  }
+  return null;
+}
+
+// --- Source 1: TAB API ---
+async function fetchFromTAB(today) {
+  const results = [];
+  for (const jur of JURISDICTIONS) {
+    const url = `https://api.beta.tab.com.au/v1/tab-info-service/racing/dates/${today}/meetings?jurisdiction=${jur}&type=R`;
+    const data = await fetchWithProxy(url);
+    if (data?.meetings) {
+      for (const m of data.meetings) {
+        if (!results.find(r => r.meetingName === m.meetingName)) {
+          results.push({
+            meetingName: m.meetingName,
+            location: m.location,
+            venueGrade: m.venueGrade,
+            raceCount: m.raceCount || m.races?.length || 8,
+            _source: 'TAB'
+          });
+        }
+      }
+      // One successful jurisdiction means proxies are working — continue all
+    }
+  }
+  return results.filter(m => m.meetingName);
+}
+
+// --- Source 2: Ladbrokes Affiliates API ---
+async function fetchFromLadbrokes(today) {
+  const url = `https://api-affiliates.ladbrokes.com.au/affiliates/v1/racing/meetings?date_from=${today}&date_to=${today}&category=T&country=AUS&limit=100`;
+  const data = await fetchWithProxy(url, { 'From': 'quaddie-draw@puntersclub.com', 'X-Partner': 'Meadows Punters Club' });
+  if (!data?.data?.meetings) return [];
+
+  // Metro tracks by name for grading
+  const METRO = ['flemington','randwick','caulfield','moonee valley','rosehill','eagle farm','doomben','morphettville','ascot','sandown','warwick farm','gold coast','canterbury','kensington'];
+  const PROVINCIAL = ['ballarat','bendigo','geelong','pakenham','cranbourne','hawkesbury','newcastle','kembla grange','gosford','sunshine coast','ipswich','toowoomba','launceston','hobart'];
+
+  return data.data.meetings
+    .filter(m => m.country === 'AUS')
+    .map(m => {
+      const nameLower = m.name.toLowerCase();
+      const grade = METRO.some(t => nameLower.includes(t)) ? 'M'
+                  : PROVINCIAL.some(t => nameLower.includes(t)) ? 'P' : 'C';
+      const state = m.state || m.races?.[0]?.state || '';
+      const raceCount = (m.races || []).filter(r => r.race_number > 0).length || 8;
+      return {
+        meetingName: m.name,
+        location: { state },
+        venueGrade: grade,
+        raceCount,
+        _source: 'Ladbrokes'
+      };
+    });
+}
+
+async function loadMeetings() {
+  const status = document.getElementById('loadStatus');
+  const trackListEl = document.getElementById('trackList');
+  status.innerHTML = `<div class="loading"><div class="spinner"></div>Fetching today's race meetings...</div>`;
+  trackListEl.innerHTML = '';
+  selectedTracks.clear();
+  allMeetings = [];
+  isFallback = false;
+
+  const today = getTodayString();
+  let results = [];
+  let source = '';
+
+  // Try TAB first
+  status.innerHTML = `<div class="loading"><div class="spinner"></div>Trying TAB API...</div>`;
+  results = await fetchFromTAB(today);
+
+  // If TAB failed, try Ladbrokes
+  if (results.length === 0) {
+    status.innerHTML = `<div class="loading"><div class="spinner"></div>TAB unavailable — trying Ladbrokes API...</div>`;
+    results = await fetchFromLadbrokes(today);
+    if (results.length > 0) source = 'Ladbrokes';
+  } else {
+    source = 'TAB';
+  }
+
+  // Both failed — use fallback
+  if (results.length === 0) {
+    status.innerHTML = `<div class="error-box">⚠️ Couldn't reach TAB or Ladbrokes APIs. Showing a default list of major tracks — select the ones actually running today and continue.</div>`;
+    loadFallbackMeetings();
+    return;
+  }
+
+  // Sort by prestige then race count
+  const sorted = results.sort((a, b) => {
+    const gradeOrder = { 'M': 0, 'P': 1, 'C': 2 };
+    const ga = gradeOrder[a.venueGrade] ?? 3;
+    const gb = gradeOrder[b.venueGrade] ?? 3;
+    if (ga !== gb) return ga - gb;
+    return (b.raceCount || 0) - (a.raceCount || 0);
+  });
+
+  allMeetings = sorted;
+  status.innerHTML = `<div style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-top:8px;">✓ LIVE — ${sorted.length} meetings via ${source}</div>`;
+  renderTrackList(sorted);
+}
+
+function loadFallbackMeetings() {
+  isFallback = true;
+  const saturdayMeets = [
+    { meetingName: 'Flemington', location: { state: 'VIC' }, venueGrade: 'M', raceCount: 10 },
+    { meetingName: 'Randwick', location: { state: 'NSW' }, venueGrade: 'M', raceCount: 10 },
+    { meetingName: 'Eagle Farm', location: { state: 'QLD' }, venueGrade: 'M', raceCount: 9 },
+    { meetingName: 'Morphettville', location: { state: 'SA' }, venueGrade: 'M', raceCount: 8 },
+    { meetingName: 'Ascot', location: { state: 'WA' }, venueGrade: 'M', raceCount: 8 },
+    { meetingName: 'Caulfield', location: { state: 'VIC' }, venueGrade: 'M', raceCount: 9 },
+    { meetingName: 'Rosehill', location: { state: 'NSW' }, venueGrade: 'M', raceCount: 9 },
+    { meetingName: 'Doomben', location: { state: 'QLD' }, venueGrade: 'M', raceCount: 8 },
+    { meetingName: 'Sandown', location: { state: 'VIC' }, venueGrade: 'P', raceCount: 7 },
+    { meetingName: 'Moonee Valley', location: { state: 'VIC' }, venueGrade: 'M', raceCount: 7 },
+    { meetingName: 'Warwick Farm', location: { state: 'NSW' }, venueGrade: 'P', raceCount: 7 },
+    { meetingName: 'Gold Coast', location: { state: 'QLD' }, venueGrade: 'P', raceCount: 7 },
+  ];
+  allMeetings = saturdayMeets;
+  renderTrackList(saturdayMeets);
+}
+
+function getQuaddieRaces(meeting) {
+  // TAB quaddies are typically the last 4 races of a meeting
+  const count = meeting.raceCount || meeting.races?.length || 8;
+  const start = count - 3;
+  return [start, start+1, start+2, count];
+}
+
+function getVenueGrade(meeting) {
+  const g = meeting.venueGrade || '';
+  if (g === 'M') return { label: 'Metro', cls: 'badge-metro' };
+  if (g === 'P') return { label: 'Provincial', cls: 'badge-provincial' };
+  return { label: 'Country', cls: 'badge-country' };
+}
+
+function renderTrackList(meetings) {
+  const el = document.getElementById('trackList');
+  if (!meetings.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div>No thoroughbred meetings found today.</div>`;
+    return;
+  }
+
+  const { label: _, cls: __ } = { label: '', cls: '' };
+
+  el.innerHTML = `
+    ${isFallback ? `<div style="background:rgba(232,184,75,0.08);border:1px solid rgba(232,184,75,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--gold);font-family:'DM Mono',monospace;">
+      ⚠️ FALLBACK MODE — This is a default list of major tracks, not today's live data. Only tick the tracks that are actually racing today.
+    </div>` : `<div style="color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;margin-bottom:12px;">✓ LIVE DATA — ${meetings.length} meetings found for today</div>`}
+    <div class="track-list" id="trackListInner"></div>
+    <div class="select-actions">
+      <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px" onclick="selectAll()">Select All</button>
+      <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px" onclick="selectMetro()">Metro Only</button>
+      <button class="btn btn-secondary" style="font-size:12px;padding:8px 14px" onclick="clearAll()">Clear</button>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="confirmSelection()" id="confirmBtn" disabled>Next →</button>
+    </div>
+  `;
+
+  const inner = document.getElementById('trackListInner');
+  meetings.forEach((m, i) => {
+    const qr = getQuaddieRaces(m);
+    const grade = getVenueGrade(m);
+    const state = m.location?.state || '';
+    const div = document.createElement('div');
+    div.className = 'track-item';
+    div.dataset.idx = i;
+    div.onclick = () => toggleTrack(i, div);
+    div.innerHTML = `
+      <div class="track-checkbox" id="chk-${i}">✓</div>
+      <div class="track-info">
+        <div class="track-name">${m.meetingName}${state ? ' <span style="color:var(--muted);font-size:13px">'+state+'</span>' : ''}</div>
+        <div class="track-meta">Quaddie: R${qr[0]} · R${qr[1]} · R${qr[2]} · R${qr[3]}</div>
+      </div>
+      <span class="track-badge ${grade.cls}">${grade.label}</span>
+    `;
+    inner.appendChild(div);
+  });
+}
+
+function toggleTrack(idx, el) {
+  if (selectedTracks.has(idx)) {
+    selectedTracks.delete(idx);
+    el.classList.remove('selected');
+  } else {
+    selectedTracks.add(idx);
+    el.classList.add('selected');
+  }
+  updateConfirmBtn();
+}
+
+function selectAll() {
+  allMeetings.forEach((_, i) => {
+    selectedTracks.add(i);
+    document.querySelector(`[data-idx="${i}"]`)?.classList.add('selected');
+  });
+  updateConfirmBtn();
+}
+
+function selectMetro() {
+  clearAll();
+  allMeetings.forEach((m, i) => {
+    if (m.venueGrade === 'M' || (!m.venueGrade && (m.raceCount || 0) >= 8)) {
+      selectedTracks.add(i);
+      document.querySelector(`[data-idx="${i}"]`)?.classList.add('selected');
+    }
+  });
+  updateConfirmBtn();
+}
+
+function clearAll() {
+  selectedTracks.clear();
+  document.querySelectorAll('.track-item').forEach(el => el.classList.remove('selected'));
+  updateConfirmBtn();
+}
+
+function updateConfirmBtn() {
+  const btn = document.getElementById('confirmBtn');
+  if (btn) btn.disabled = selectedTracks.size === 0;
+}
+
+function confirmSelection() {
+  if (!selectedTracks.size) return;
+  document.getElementById('step2').classList.remove('disabled');
+  document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function runDraw() {
+  currentDraw = [];
+  const selected = [...selectedTracks].map(i => allMeetings[i]);
+
+  selected.forEach(meeting => {
+    const shuffledPunters = shuffle(PUNTERS);
+    const qr = getQuaddieRaces(meeting);
+    const legs = qr.map((raceNum, legIdx) => ({
+      race: raceNum,
+      leg: legIdx + 1,
+      punter: shuffledPunters[legIdx]
+    }));
+    currentDraw.push({ meeting, legs });
+  });
+
+  renderDraw(currentDraw);
+  document.getElementById('reshuffleRow').style.display = 'flex';
+}
+
+function renderDraw(draw) {
+  const el = document.getElementById('drawResults');
+  el.innerHTML = '<div class="draw-grid"></div>';
+  const grid = el.querySelector('.draw-grid');
+
+  draw.forEach((item, di) => {
+    const card = document.createElement('div');
+    card.className = 'draw-card';
+    card.style.animationDelay = `${di * 0.08}s`;
+
+    const state = item.meeting.location?.state || '';
+    const grade = getVenueGrade(item.meeting);
+
+    card.innerHTML = `
+      <div class="draw-card-header">
+        <div class="draw-track-name">${item.meeting.meetingName} ${state ? '<span style="color:var(--muted);font-size:14px">'+state+'</span>' : ''}</div>
+        <span class="track-badge ${grade.cls}">${grade.label}</span>
+      </div>
+      <div class="draw-races">
+        ${item.legs.map(leg => `
+          <div class="race-cell">
+            <div class="race-label">LEG ${leg.leg}</div>
+            <div class="race-num">R${leg.race}</div>
+            <div><span class="punter-chip punter-${leg.punter.replace(/ /g,'')}">${leg.punter}</span></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function showStep3() {
+  if (!currentDraw) return;
+  document.getElementById('step3').classList.remove('disabled');
+  generateMessage();
+  document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Also unlock step 4 now
+  showStep4();
+  saveState();
+}
+
+function generateMessage() {
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let msg = `🏇 QUADDIE DRAW — ${dateStr.toUpperCase()}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  currentDraw.forEach(item => {
+    const state = item.meeting.location?.state ? ` (${item.meeting.location.state})` : '';
+    msg += `📍 ${item.meeting.meetingName.toUpperCase()}${state}\n`;
+    item.legs.forEach(leg => {
+      msg += `  Leg ${leg.leg} – R${leg.race} → ${leg.punter}\n`;
+    });
+    msg += `\n`;
+  });
+
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `Good luck legends 🍀`;
+
+  document.getElementById('messageBox').textContent = msg;
+}
+
+async function copyMessage() {
+  const text = document.getElementById('messageBox').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch(e) {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  const notice = document.getElementById('copiedNotice');
+  notice.classList.add('show');
+  setTimeout(() => notice.classList.remove('show'), 3000);
+}
+
+function confirmReset() {
+  document.getElementById('resetConfirm').style.display = 'block';
+}
+
+function cancelReset() {
+  document.getElementById('resetConfirm').style.display = 'none';
+}
+
+function doReset() {
+  document.getElementById('resetConfirm').style.display = 'none';
+  resetAll();
+}
+
+function resetAll() {
+  selectedTracks.clear();
+  allMeetings = [];
+  currentDraw = null;
+  selections = {};
+  raceResults = {};
+  document.getElementById('loadStatus').innerHTML = '';
+  document.getElementById('trackList').innerHTML = '';
+  document.getElementById('drawResults').innerHTML = '';
+  document.getElementById('messageBox').textContent = '';
+  document.getElementById('reshuffleRow').style.display = 'none';
+  document.getElementById('selectionsForm').innerHTML = '';
+  document.getElementById('summaryContent').innerHTML = '';
+  document.getElementById('resultsGrid').innerHTML = '';
+  document.getElementById('checkStatusBar').innerHTML = '';
+  document.getElementById('checkResultsBtn').textContent = '🔍 Check Results';
+  ['step2','step3','step4','step5','step6'].forEach(id => document.getElementById(id).classList.add('disabled'));
+  clearStorage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── STORAGE ────────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'quaddie_state';
+
+function getMidnightAEST() {
+  // Returns ms until midnight AEST (UTC+10) or AEDT (UTC+11)
+  const now = new Date();
+  // Get current AEST date string
+  const aestStr = now.toLocaleDateString('en-AU', { timeZone: 'Australia/Sydney' });
+  // Parse as next midnight in AEST
+  const [d, m, y] = aestStr.split('/');
+  const midnightAEST = new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00+11:00`);
+  // If we already passed midnight AEDT, try AEST
+  const midnightAEST2 = new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T00:00:00+10:00`);
+  // Use tomorrow midnight
+  const tomorrow = new Date(midnightAEST);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.getTime();
+}
+
+function saveState() {
+  if (!currentDraw) return;
+  const state = {
+    draw: currentDraw,
+    selections,
+    raceResults,
+    date: getTodayString(),
+    expiresAt: getMidnightAEST()
+  };
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+    // Check not expired and is today
+    if (state.expiresAt < Date.now()) { clearStorage(); return null; }
+    if (state.date !== getTodayString()) { clearStorage(); return null; }
+    return state;
+  } catch(e) { return null; }
+}
+
+function clearStorage() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+}
+
+// Auto-clear at midnight
+function scheduleAutoReset() {
+  const msUntilMidnight = getMidnightAEST() - Date.now();
+  if (msUntilMidnight > 0) {
+    setTimeout(() => {
+      clearStorage();
+      selections = {};
+      // If step4/5 visible, collapse them
+      document.getElementById('step4').classList.add('disabled');
+      document.getElementById('step5').classList.add('disabled');
+    }, msUntilMidnight);
+  }
+}
+scheduleAutoReset();
+
+// ─── STEP 4: SELECTIONS ─────────────────────────────────────────────────────
+
+let selections = {}; // { "trackName|legIdx": [horse numbers] }
+
+function showStep4() {
+  document.getElementById('step4').classList.remove('disabled');
+  renderSelectionsForm();
+  document.getElementById('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  saveState();
+}
+
+function selectionKey(trackName, legIdx) {
+  return `${trackName}|${legIdx}`;
+}
+
+function renderSelectionsForm() {
+  const el = document.getElementById('selectionsForm');
+  el.innerHTML = '';
+
+  currentDraw.forEach(item => {
+    const trackName = item.meeting.meetingName;
+    const state = item.meeting.location?.state || '';
+    const block = document.createElement('div');
+    block.className = 'selections-track-block';
+
+    const allFilled = item.legs.every(leg => {
+      const val = selections[selectionKey(trackName, leg.leg)];
+      return val && val.length > 0;
+    });
+
+    block.innerHTML = `
+      <div class="selections-track-title">
+        📍 ${trackName}${state ? ' <span style="color:var(--muted);font-size:14px">' + state + '</span>' : ''}
+        ${allFilled ? '<span class="track-complete-badge">✓ Done</span>' : ''}
+      </div>
+      ${item.legs.map(leg => {
+        const key = selectionKey(trackName, leg.leg);
+        const saved = selections[key] ? selections[key].join(', ') : '';
+        const haVal = saved ? ' has-value' : '';
+        return `
+          <div class="leg-row">
+            <div class="leg-label">
+              <span class="punter-chip punter-${leg.punter.replace(/ /g,'')}" style="font-size:10px;padding:2px 7px;">${leg.punter}</span>
+              <div style="margin-top:3px;font-size:10px;">Leg ${leg.leg} · R${leg.race}</div>
+            </div>
+            <input
+              class="leg-input${haVal}"
+              type="text"
+              inputmode="numeric"
+              placeholder="e.g. 1, 4, 7"
+              value="${saved}"
+              data-track="${trackName}"
+              data-leg="${leg.leg}"
+              onchange="onSelectionChange(this)"
+              oninput="onSelectionInput(this)"
+            />
+            <div class="leg-status">${saved ? '✅' : '·'}</div>
+          </div>
+        `;
+      }).join('')}
+    `;
+    el.appendChild(block);
+  });
+
+  updateSelectionsProgress();
+}
+
+function parseHorses(raw) {
+  // Accept "1, 4, 7" or "1 4 7" or "1/4/7" etc
+  return raw.split(/[\s,\/]+/)
+    .map(s => s.trim())
+    .filter(s => /^\d+$/.test(s))
+    .map(Number)
+    .filter((v, i, a) => a.indexOf(v) === i) // deduplicate
+    .sort((a, b) => a - b);
+}
+
+function onSelectionInput(input) {
+  // Live feedback as typing
+  const raw = input.value.trim();
+  const horses = parseHorses(raw);
+  if (horses.length > 0) {
+    input.classList.add('has-value');
+    input.nextElementSibling.textContent = '✅';
+  } else {
+    input.classList.remove('has-value');
+    input.nextElementSibling.textContent = '·';
+  }
+}
+
+function onSelectionChange(input) {
+  const trackName = input.dataset.track;
+  const leg = parseInt(input.dataset.leg);
+  const horses = parseHorses(input.value);
+  const key = selectionKey(trackName, leg);
+
+  if (horses.length > 0) {
+    selections[key] = horses;
+    input.value = horses.join(', '); // normalise format
+    input.classList.add('has-value');
+    input.nextElementSibling.textContent = '✅';
+  } else {
+    delete selections[key];
+    input.classList.remove('has-value');
+    input.nextElementSibling.textContent = '·';
+  }
+
+  updateSelectionsProgress();
+  saveState();
+
+  // Refresh the block header (done badge)
+  renderSelectionsForm();
+}
+
+function updateSelectionsProgress() {
+  const totalLegs = currentDraw.reduce((n, item) => n + item.legs.length, 0);
+  const filledLegs = Object.keys(selections).length;
+  const pct = totalLegs > 0 ? Math.round((filledLegs / totalLegs) * 100) : 0;
+  document.getElementById('selectionsProgress').style.width = pct + '%';
+
+  const nextBtn = document.getElementById('step4NextBtn');
+  if (nextBtn) nextBtn.disabled = filledLegs < totalLegs;
+}
+
+// ─── STEP 5: SUMMARY ────────────────────────────────────────────────────────
+
+function showStep5() {
+  document.getElementById('step5').classList.remove('disabled');
+  document.getElementById('step6').classList.remove('disabled');
+  renderSummary();
+  document.getElementById('step5').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function editSelections() {
+  document.getElementById('step4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── RESULTS STATE ──────────────────────────────────────────────────────────
+// results[trackName][raceNum] = { winner: Number|null, status: 'win'|'loss'|'pending' }
+let raceResults = {};
+
+function renderSummary() {
+  renderResultsCards();
+
+  const el = document.getElementById('summaryContent');
+  el.innerHTML = '';
+
+  currentDraw.forEach(item => {
+    const trackName = item.meeting.meetingName;
+    const state = item.meeting.location?.state || '';
+    const grade = getVenueGrade(item.meeting);
+
+    const block = document.createElement('div');
+    block.className = 'summary-block';
+
+    const rows = item.legs.map(leg => {
+      const key = selectionKey(trackName, leg.leg);
+      const horses = selections[key] || [];
+      const horsesStr = horses.length > 0 ? horses.join(', ') : '<span style="color:var(--muted)">—</span>';
+      return `
+        <tr>
+          <td><span class="punter-chip punter-${leg.punter.replace(/ /g,'')}" style="font-size:11px;padding:3px 8px;">${leg.punter}</span></td>
+          <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;">Leg ${leg.leg} · R${leg.race}</td>
+          <td class="summary-horses">${horsesStr}</td>
+        </tr>
+      `;
+    }).join('');
+
+    block.innerHTML = `
+      <div class="summary-track-header">
+        📍 ${trackName.toUpperCase()}${state ? ' <span style="color:var(--muted);font-size:13px;font-family:\'DM Sans\',sans-serif;font-weight:400;">' + state + '</span>' : ''}
+        <span class="track-badge ${grade.cls}" style="margin-left:auto;">${grade.label}</span>
+      </div>
+      <table class="summary-table">
+        <thead><tr>
+          <th>Punter</th><th>Leg</th><th>Horses</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    el.appendChild(block);
+  });
+}
+
+function renderResultsCards() {
+  const grid = document.getElementById('resultsGrid');
+  grid.innerHTML = '';
+
+  currentDraw.forEach((item, di) => {
+    const trackName = item.meeting.meetingName;
+    const state = item.meeting.location?.state || '';
+    const grade = getVenueGrade(item.meeting);
+    const trackRes = raceResults[trackName] || {};
+
+    const card = document.createElement('div');
+    card.className = 'results-card';
+    card.style.animationDelay = `${di * 0.06}s`;
+
+    const legCells = item.legs.map(leg => {
+      const key = selectionKey(trackName, leg.leg);
+      const myHorses = selections[key] || [];
+      const res = trackRes[leg.race];
+      let statusClass = 'status-pending';
+      let icon = '🏇';
+      let winnerLine = '<span class="result-winner pending">Pending</span>';
+
+      if (res) {
+        if (res.status === 'win') {
+          statusClass = 'status-win';
+          icon = '✅';
+          winnerLine = `<span class="result-winner win">✓ #${res.winner}</span>`;
+        } else if (res.status === 'loss') {
+          statusClass = 'status-loss';
+          icon = '❌';
+          winnerLine = `<span class="result-winner loss">#${res.winner} won</span>`;
+        }
+      }
+
+      const horsesDisplay = myHorses.length > 0
+        ? myHorses.map(h => `<span style="color:${res?.status==='win' && myHorses.includes(res.winner) && h===res.winner ? '#4de080' : 'inherit'}">${h}</span>`).join(', ')
+        : '<span style="color:var(--muted)">—</span>';
+
+      return `
+        <div class="result-leg-cell ${statusClass}">
+          <span class="result-status-icon">${icon}</span>
+          <div class="result-leg-label">Leg ${leg.leg}</div>
+          <div class="result-race-num">R${leg.race}</div>
+          <div class="result-horses">${horsesDisplay}</div>
+          <span class="punter-chip punter-${leg.punter.replace(/ /g,'')}" style="font-size:9px;padding:2px 6px;margin-bottom:4px;display:inline-block;">${leg.punter}</span>
+          <div>${winnerLine}</div>
+        </div>
+      `;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="results-card-header">
+        <div class="results-track-name">
+          📍 ${trackName}${state ? ' <span style="color:var(--muted);font-size:14px">' + state + '</span>' : ''}
+        </div>
+        <span class="track-badge ${grade.cls}">${grade.label}</span>
+      </div>
+      <div class="results-legs">${legCells}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ─── CHECK RESULTS ───────────────────────────────────────────────────────────
+
+async function checkResults() {
+  const btn = document.getElementById('checkResultsBtn');
+  const statusBar = document.getElementById('checkStatusBar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Checking...';
+  statusBar.innerHTML = '<div class="spinner"></div> Fetching results...';
+
+  const today = getTodayString();
+  let checkedCount = 0;
+  let foundCount = 0;
+
+  for (const item of currentDraw) {
+    const trackName = item.meeting.meetingName;
+    if (!raceResults[trackName]) raceResults[trackName] = {};
+
+    // Try TAB first, then Ladbrokes
+    let fetched = false;
+
+    // --- TAB results ---
+    for (const jur of JURISDICTIONS) {
+      if (fetched) break;
+      const tabUrl = `https://api.beta.tab.com.au/v1/tab-info-service/racing/dates/${today}/meetings/R/${encodeURIComponent(trackName)}/races?jurisdiction=${jur}`;
+      const data = await fetchWithProxy(tabUrl);
+      if (!data?.races) continue;
+
+      for (const leg of item.legs) {
+        const race = data.races.find(r => r.raceNumber === leg.race);
+        if (!race) continue;
+        const winner = extractWinnerFromTABRace(race);
+        if (winner !== null) {
+          const myHorses = selections[selectionKey(trackName, leg.leg)] || [];
+          raceResults[trackName][leg.race] = {
+            winner,
+            status: myHorses.includes(winner) ? 'win' : 'loss',
+            source: 'TAB'
+          };
+          foundCount++;
+        }
+      }
+      fetched = true;
+    }
+
+    // --- Ladbrokes fallback ---
+    if (!fetched || item.legs.some(leg => !raceResults[trackName][leg.race])) {
+      const lbUrl = `https://api-affiliates.ladbrokes.com.au/affiliates/v1/racing/meetings?date_from=${today}&date_to=${today}&category=T&country=AUS&limit=100`;
+      const lbData = await fetchWithProxy(lbUrl, { 'From': 'quaddie-draw@puntersclub.com', 'X-Partner': 'Meadows Punters Club' });
+      if (lbData?.data?.meetings) {
+        const meeting = lbData.data.meetings.find(m =>
+          m.name.toLowerCase().includes(trackName.toLowerCase()) ||
+          trackName.toLowerCase().includes(m.name.toLowerCase())
+        );
+        if (meeting?.races) {
+          for (const leg of item.legs) {
+            if (raceResults[trackName][leg.race]) continue; // already got it from TAB
+            const race = meeting.races.find(r => r.race_number === leg.race);
+            if (!race) continue;
+            // Fetch full race for results
+            const raceData = await fetchWithProxy(
+              `https://api-affiliates.ladbrokes.com.au/affiliates/v1/racing/events/${race.id}`,
+              { 'From': 'quaddie-draw@puntersclub.com', 'X-Partner': 'Meadows Punters Club' }
+            );
+            const winner = extractWinnerFromLadbrokesRace(raceData);
+            if (winner !== null) {
+              const myHorses = selections[selectionKey(trackName, leg.leg)] || [];
+              raceResults[trackName][leg.race] = {
+                winner,
+                status: myHorses.includes(winner) ? 'win' : 'loss',
+                source: 'Ladbrokes'
+              };
+              foundCount++;
+            }
+          }
+        }
+      }
+    }
+    checkedCount++;
+    statusBar.innerHTML = `<div class="spinner"></div> Checked ${checkedCount}/${currentDraw.length} tracks...`;
+  }
+
+  // Save results to state
+  saveState();
+  renderResultsCards();
+
+  btn.disabled = false;
+  btn.textContent = '🔄 Refresh Results';
+
+  // Assign blame now that results are in
+  assignBlame();
+
+  const total = currentDraw.reduce((n, item) => n + item.legs.length, 0);
+  const pending = total - foundCount;
+  if (pending === 0) {
+    statusBar.innerHTML = `✓ All ${total} races checked`;
+  } else if (foundCount === 0) {
+    statusBar.innerHTML = `⚠️ No results available yet — races may not have run`;
+  } else {
+    statusBar.innerHTML = `✓ ${foundCount} results found · ${pending} still pending`;
+  }
+}
+
+function extractWinnerFromTABRace(race) {
+  // TAB returns results array with position & runnerNumber
+  const results = race.results || race.runners || [];
+  const winner = results.find(r =>
+    (r.finishingPosition === 1 || r.position === 1) && (r.runnerNumber || r.number)
+  );
+  if (winner) return winner.runnerNumber || winner.number;
+
+  // Some TAB responses have a dividends array
+  if (race.dividends) {
+    const win = race.dividends.find(d => d.betType === 'Win' || d.dividendType === 'Win');
+    if (win?.runnerNumber) return win.runnerNumber;
+  }
+  return null;
+}
+
+function extractWinnerFromLadbrokesRace(raceData) {
+  const race = raceData?.data?.race || raceData?.data;
+  if (!race) return null;
+  const runners = race.runners || race.entrants || [];
+  const winner = runners.find(r =>
+    r.result?.position === 1 || r.finish_position === 1 || r.position === 1
+  );
+  if (winner) return winner.runner_number || winner.number || winner.tabNo;
+  return null;
+}
+
+async function copySummary() {
+  const d = new Date();
+  const dateStr = d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let msg = `🏇 QUADDIE SELECTIONS — ${dateStr.toUpperCase()}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  currentDraw.forEach(item => {
+    const trackName = item.meeting.meetingName;
+    const state = item.meeting.location?.state ? ` (${item.meeting.location.state})` : '';
+    msg += `📍 ${trackName.toUpperCase()}${state}\n`;
+    item.legs.forEach(leg => {
+      const key = selectionKey(trackName, leg.leg);
+      const horses = selections[key] || [];
+      const horsesStr = horses.length > 0 ? horses.join(', ') : '—';
+      msg += `  ${leg.punter} · Leg ${leg.leg} R${leg.race}: ${horsesStr}\n`;
+    });
+    msg += '\n';
+  });
+
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `Good luck legends 🍀`;
+
+  try { await navigator.clipboard.writeText(msg); }
+  catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = msg; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  }
+  const notice = document.getElementById('copiedNotice2');
+  notice.classList.add('show');
+  setTimeout(() => notice.classList.remove('show'), 3000);
+}
+
+// ─── HALL OF SHAME ───────────────────────────────────────────────────────────
+
+// ─── GIST CONFIG ─────────────────────────────────────────────────────────────
+const GIST_ID    = 'd9ec236d703a1f09c3548e6d29bb86b3';
+const GIST_TOKEN = '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';
+const GIST_FILE  = 'shame.json';
+
+const PUNTER_INITIALS = { 'MJ': 'MJ', 'HM': 'HM', 'CV': 'CV', 'Orgy': 'OG' };
+
+// Local cache so UI is snappy while Gist loads
+let shameCache = { MJ: 0, HM: 0, CV: 0, Orgy: 0 };
+
+async function loadShame() {
+  try {
+    const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      headers: {
+        'Authorization': `token ${GIST_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+    if (!res.ok) throw new Error('Gist fetch failed');
+    const data = await res.json();
+    const raw = data.files[GIST_FILE]?.content;
+    if (!raw) throw new Error('File missing in Gist');
+    shameCache = JSON.parse(raw);
+    return shameCache;
+  } catch(e) {
+    console.warn('loadShame fell back to cache:', e);
+    return shameCache;
+  }
+}
+
+async function saveShame(shame) {
+  shameCache = shame;
+  // Optimistically update UI immediately, then persist to Gist
+  try {
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `token ${GIST_TOKEN}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        files: { [GIST_FILE]: { content: JSON.stringify(shame, null, 2) } }
+      })
+    });
+  } catch(e) {
+    console.warn('saveShame Gist write failed:', e);
+  }
+}
+
+async function renderShame(highlightPunter = null) {
+  // Show spinner in podium while loading
+  const podium = document.getElementById('shamePodium');
+  if (!highlightPunter) {
+    podium.innerHTML = '<div class="loading" style="justify-content:center;padding:32px 0;"><div class="spinner"></div> Loading scores...</div>';
+  }
+  const shame = await loadShame();
+
+  // Sort by losses descending, stable sort by name for ties
+  const sorted = PUNTERS
+    .map(p => ({ name: p, losses: shame[p] || 0 }))
+    .sort((a, b) => b.losses - a.losses || a.name.localeCompare(b.name));
+
+  // Compute max for bar scaling
+  const maxLosses = Math.max(...sorted.map(s => s.losses), 1);
+
+  // Bar heights: rank 1 = 120px, scale others proportionally, min 20px
+  const barHeights = sorted.map(s => Math.max(20, Math.round((s.losses / maxLosses) * 120)));
+
+  const sizeClass = ['big', 'med', 'small', 'small'];
+  const crowns = ['💀', '😬', '😅', '😌'];
+  const rankLabels = ['Most to blame', '2nd worst', '3rd worst', 'Clean hands'];
+
+  podium.innerHTML = sorted.map((item, i) => {
+    const rank = i + 1;
+    const initials = PUNTER_INITIALS[item.name] || item.name.slice(0,2);
+    const isHighlight = item.name === highlightPunter;
+    const zeroClass = item.losses === 0 ? ' shame-zero' : '';
+    const popClass = isHighlight ? ' blame-pop' : '';
+
+    return `
+      <div class="shame-slot shame-rank-${rank}${zeroClass}" id="shame-slot-${item.name}">
+        <div class="shame-crown">${item.losses > 0 ? crowns[i] : ''}</div>
+        <div class="shame-avatar${popClass}">${initials}</div>
+        <div class="shame-punter-name">${item.name}</div>
+        <div class="shame-count ${sizeClass[i]}${popClass}">${item.losses}</div>
+        <div class="shame-label">${item.losses === 1 ? 'quaddie killed' : 'quaddies killed'}</div>
+        <div class="shame-block" style="height:${barHeights[i]}px;"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function assignBlame() {
+  // Called after results are confirmed. For each track, walk legs in order,
+  // find the FIRST leg that is a loss — that punter gets the blame.
+  if (!currentDraw || Object.keys(raceResults).length === 0) return;
+
+  const shame = loadShame();
+  let anyBlameAssigned = false;
+  let blamedPunter = null;
+
+  currentDraw.forEach(item => {
+    const trackName = item.meeting.meetingName;
+    const trackRes = raceResults[trackName] || {};
+
+    // Check all legs have a result before assigning blame
+    const allResolved = item.legs.every(leg => trackRes[leg.race] && trackRes[leg.race].status !== 'pending');
+    if (!allResolved) return;
+
+    // Walk legs in race order (already sorted leg 1→4)
+    for (const leg of item.legs) {
+      const res = trackRes[leg.race];
+      if (!res) return;
+      if (res.status === 'loss') {
+        // This is the kill shot
+        shame[leg.punter] = (shame[leg.punter] || 0) + 1;
+        blamedPunter = leg.punter;
+        anyBlameAssigned = true;
+        break; // only first loss gets blamed
+      }
+      // If win, continue to next leg
+    }
+  });
+
+  if (anyBlameAssigned) {
+    await saveShame(shame);
+    renderShame(blamedPunter);
+  }
+}
+
+function checkAdminMode() {
+  const isAdmin = window.location.hash === '#admin';
+  const panel = document.getElementById('shameAdminPanel');
+  if (panel) panel.style.display = isAdmin ? 'block' : 'none';
+}
+
+function hideAdminPanel() {
+  // Remove the hash without reloading
+  history.replaceState(null, '', window.location.pathname);
+  checkAdminMode();
+}
+
+async function doShameReset() {
+  await saveShame({ MJ: 0, HM: 0, CV: 0, Orgy: 0 });
+  hideAdminPanel();
+  renderShame();
+}
+
+// Show/hide admin panel based on URL hash
+window.addEventListener('hashchange', checkAdminMode);
+
+// ─── RESTORE STATE ON LOAD ───────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  renderShame();
+  checkAdminMode();
+
+  const state = loadState();
+  if (state) {
+    currentDraw = state.draw;
+    selections = state.selections || {};
+    raceResults = state.raceResults || {};
+    allMeetings = currentDraw.map(item => item.meeting);
+    // Restore UI
+    ['step2','step3','step4','step5','step6'].forEach(id => document.getElementById(id).classList.remove('disabled'));
+    renderDraw(currentDraw);
+    document.getElementById('reshuffleRow').style.display = 'flex';
+    generateMessage();
+    renderSelectionsForm();
+    renderSummary();
+    // Show a restore notice
+    const notice = document.createElement('div');
+    notice.style.cssText = 'background:rgba(232,184,75,0.1);border:1px solid rgba(232,184,75,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--gold);font-family:\'DM Mono\',monospace;margin-bottom:16px;';
+    notice.textContent = `↩ Session restored from earlier today. Scroll down to continue.`;
+    document.querySelector('.container').insertBefore(notice, document.getElementById('step1'));
+    setTimeout(() => notice.remove(), 6000);
+  }
+});
+
+</script>
+</body>
+</html>
